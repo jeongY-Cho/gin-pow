@@ -272,6 +272,18 @@ func (pow *Middleware) VerifyNonceMiddleware(c *gin.Context) {
 		return
 	}
 
+	if nonce == "" {
+		c.String(400, "no nonce in request")
+		c.Abort()
+		return
+	}
+
+	if pow.Check && nonceChecksum == "" {
+		c.String(400, "no nonce checksum in request")
+		c.Abort()
+		return
+	}
+
 	data, err := pow.ExtractData(c)
 	if err != nil {
 		c.AbortWithError(500, err)
@@ -281,6 +293,12 @@ func (pow *Middleware) VerifyNonceMiddleware(c *gin.Context) {
 	hash, err := pow.ExtractHash(c)
 	if err != nil {
 		c.AbortWithError(500, err)
+		return
+	}
+
+	if hash == "" {
+		c.String(400, "no hash in request")
+		c.Abort()
 		return
 	}
 

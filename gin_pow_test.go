@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"math/rand"
+	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"strconv"
@@ -738,4 +739,83 @@ func TestMiddleware_VerifyNonceMiddleware(t *testing.T) {
 		}
 	})
 
+	t.Run("no nonce", func(t *testing.T) {
+		m, _ := New(&Middleware{
+			Difficulty:  1,
+			Check:       false,
+			Secret:      "secret",
+			ExtractData: func(c *gin.Context) (string, error) { return "data11111", nil },
+			ExtractHash: func(c *gin.Context) (hash string, error error) {
+				hash = "not a valid hash"
+				return
+			},
+			ExtractNonce: func(c *gin.Context) (nonce string, nonceChecksum string, error error) {
+				nonce = ""
+				nonceChecksum = "not a checksum"
+				return
+			},
+		})
+		w := httptest.NewRecorder()
+
+		c, _ := gin.CreateTestContext(w)
+
+		m.VerifyNonceMiddleware(c)
+
+		if expect := http.StatusBadRequest; w.Code != expect {
+			t.Errorf("didn't return %v but %v", expect, w.Code)
+		}
+	})
+	t.Run("no checksum when check true", func(t *testing.T) {
+		m, _ := New(&Middleware{
+			Difficulty:  1,
+			Check:       true,
+			Secret:      "secret",
+			ExtractData: func(c *gin.Context) (string, error) { return "data11111", nil },
+			ExtractHash: func(c *gin.Context) (hash string, error error) {
+				hash = "not a valid hash"
+				return
+			},
+			ExtractNonce: func(c *gin.Context) (nonce string, nonceChecksum string, error error) {
+				nonce = "nonce"
+				nonceChecksum = ""
+				return
+			},
+		})
+		w := httptest.NewRecorder()
+
+		c, _ := gin.CreateTestContext(w)
+
+		m.VerifyNonceMiddleware(c)
+		if expect := http.StatusBadRequest; w.Code != expect {
+			t.Errorf("didn't return %v but %v", expect, w.Code)
+		}
+
+	})
+	t.Run("no hash", func(t *testing.T) {
+		m, _ := New(&Middleware{
+			Difficulty:  1,
+			Check:       false,
+			Secret:      "secret",
+			ExtractData: func(c *gin.Context) (string, error) { return "data11111", nil },
+			ExtractHash: func(c *gin.Context) (hash string, error error) {
+				hash = ""
+				return
+			},
+			ExtractNonce: func(c *gin.Context) (nonce string, nonceChecksum string, error error) {
+				nonce = "nonce"
+				nonceChecksum = "not a checksum"
+				return
+			},
+		})
+		w := httptest.NewRecorder()
+
+		c, _ := gin.CreateTestContext(w)
+
+		m.VerifyNonceMiddleware(c)
+
+		if expect := http.StatusBadRequest; w.Code != expect {
+			t.Errorf("didn't return %v but %v", expect, w.Code)
+		}
+
+	})
 }
