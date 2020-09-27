@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -814,6 +815,85 @@ func TestMiddleware_VerifyNonceMiddleware(t *testing.T) {
 		m.VerifyNonceMiddleware(c)
 
 		if expect := http.StatusBadRequest; w.Code != expect {
+			t.Errorf("didn't return %v but %v", expect, w.Code)
+		}
+
+	})
+
+	t.Run("extract nonce or checksum error", func(t *testing.T) {
+		m, _ := New(&Middleware{
+			Difficulty:  1,
+			Check:       false,
+			Secret:      "secret",
+			ExtractData: func(c *gin.Context) (string, error) { return "data11111", nil },
+			ExtractHash: func(c *gin.Context) (hash string, error error) {
+				hash = ""
+				return
+			},
+			ExtractNonce: func(c *gin.Context) (nonce string, nonceChecksum string, error error) {
+				return "", "", errors.New("")
+			},
+		})
+		w := httptest.NewRecorder()
+
+		c, _ := gin.CreateTestContext(w)
+
+		m.VerifyNonceMiddleware(c)
+
+		if expect := http.StatusInternalServerError; w.Code != expect {
+			t.Errorf("didn't return %v but %v", expect, w.Code)
+		}
+
+	})
+
+	t.Run("extract hash error", func(t *testing.T) {
+		m, _ := New(&Middleware{
+			Difficulty:  1,
+			Check:       false,
+			Secret:      "secret",
+			ExtractData: func(c *gin.Context) (string, error) { return "data11111", nil },
+			ExtractHash: func(c *gin.Context) (hash string, error error) {
+				return "", errors.New("")
+			},
+			ExtractNonce: func(c *gin.Context) (nonce string, nonceChecksum string, error error) {
+				nonce = "nonce"
+				nonceChecksum = "not a checksum"
+				return
+			},
+		})
+		w := httptest.NewRecorder()
+
+		c, _ := gin.CreateTestContext(w)
+
+		m.VerifyNonceMiddleware(c)
+
+		if expect := http.StatusInternalServerError; w.Code != expect {
+			t.Errorf("didn't return %v but %v", expect, w.Code)
+		}
+
+	})
+	t.Run("extract data error", func(t *testing.T) {
+		m, _ := New(&Middleware{
+			Difficulty:  1,
+			Check:       false,
+			Secret:      "secret",
+			ExtractData: func(c *gin.Context) (string, error) { return "", errors.New("") },
+			ExtractHash: func(c *gin.Context) (hash string, error error) {
+				return "", errors.New("")
+			},
+			ExtractNonce: func(c *gin.Context) (nonce string, nonceChecksum string, error error) {
+				nonce = "nonce"
+				nonceChecksum = "not a checksum"
+				return
+			},
+		})
+		w := httptest.NewRecorder()
+
+		c, _ := gin.CreateTestContext(w)
+
+		m.VerifyNonceMiddleware(c)
+
+		if expect := http.StatusInternalServerError; w.Code != expect {
 			t.Errorf("didn't return %v but %v", expect, w.Code)
 		}
 
