@@ -305,6 +305,7 @@ func (pow *Middleware) VerifyNonceMiddleware(c *gin.Context) {
 	if hash == "" {
 		c.String(400, "no hash in request")
 		c.Abort()
+		return
 	}
 
 	ok, verificationErr := pow.Pow.VerifyHashAtDifficulty(nonce, data, hash, nonceChecksum)
