@@ -68,6 +68,10 @@ func TestNew(t *testing.T) {
 				continue
 			}
 
+			if varName == "Pow" {
+				continue
+			}
+
 			dvar, _ := d.Type().FieldByName(varName)
 
 			varValue := e.Field(i).Interface()
@@ -87,7 +91,9 @@ func TestNew(t *testing.T) {
 		e := reflect.ValueOf(newMiddleware).Elem()
 		funcNames := make(map[string]int, 0)
 		ignoreMethods := map[string]int{
-			"ExtractData": 1,
+			"ExtractData":    1,
+			"Hash":           1,
+			"NonceGenerator": 1,
 		}
 		// get all methods
 		for i := 0; i < e.NumField(); i++ {
