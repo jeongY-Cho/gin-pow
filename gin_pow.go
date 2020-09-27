@@ -122,12 +122,12 @@ func (pow *Middleware) middleWareInit() error {
 		pow.NonceLength = 10
 	}
 
-	pow.Pow = &gopow.Pow{
+	pow.Pow = gopow.New(&gopow.Pow{
 		Secret:      pow.Secret,
 		Check:       pow.Check,
 		Difficulty:  pow.Difficulty,
 		NonceLength: pow.NonceLength,
-	}
+	})
 
 	if pow.NonceHeader == "" {
 		pow.NonceHeader = "X-Nonce"
