@@ -52,6 +52,16 @@ func TestNew(t *testing.T) {
 		}
 	})
 
+	t.Run("test defaults, no ExtractData, but ExtractAll", func(t *testing.T) {
+		_, err := New(&Middleware{
+			ExtractAll: func(c *gin.Context) (nonce string, nonceChecksum string, data string, hash string, err error) { return },
+		})
+
+		if err != nil {
+			t.Error("New() did error when ExtractData is not set")
+		}
+	})
+
 	t.Run("test default properties", func(t *testing.T) {
 		newMiddleware := &Middleware{
 			ExtractData: func(c *gin.Context) (string, error) { return "", nil },
@@ -96,6 +106,7 @@ func TestNew(t *testing.T) {
 			"ExtractData":    1,
 			"Hash":           1,
 			"NonceGenerator": 1,
+			"ExtractAll":     1,
 		}
 		// get all methods
 		for i := 0; i < e.NumField(); i++ {
@@ -673,6 +684,30 @@ func TestMiddleware_VerifyNonceMiddleware(t *testing.T) {
 			ExtractNonce: func(c *gin.Context) (nonce string, nonceChecksum string, error error) {
 				nonce = "nonce"
 				nonceChecksum = "5c420d7fedeb75e1309b1fe82f9c85d5552f1edfc11c72e7749330881166f18d"
+				return
+			},
+		})
+		w := httptest.NewRecorder()
+
+		c, _ := gin.CreateTestContext(w)
+
+		m.VerifyNonceMiddleware(c)
+
+		if len(c.Errors) > 0 {
+			t.Errorf("verification failed with error: %v", c.Errors)
+		}
+	})
+
+	t.Run("check, difficulty 1", func(t *testing.T) {
+		m, _ := New(&Middleware{
+			Difficulty: 1,
+			Check:      true,
+			Secret:     "secret",
+			ExtractAll: func(c *gin.Context) (nonce string, nonceChecksum string, data string, hash string, err error) {
+				nonce = "nonce"
+				nonceChecksum = "5c420d7fedeb75e1309b1fe82f9c85d5552f1edfc11c72e7749330881166f18d"
+				data = "data11111"
+				hash = "024b6380e07b20023e1b986b250b09bcfaa4551510ac4903a9b052e2b2cf9019"
 				return
 			},
 		})

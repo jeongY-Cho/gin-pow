@@ -28,8 +28,15 @@ type Middleware struct {
 	// Pow is a gopow.Pow instance to handle proof of work implementation
 	Pow *gopow.Pow
 
+	// ExtractAll extracts all necessary data at once.
+	//   Optional. If not set then uses the default methods defined in `ExtractData`,
+	//   `ExtractNonce`, and `ExtractHash`. When ExtractAll is set, then `ExtractData`,
+	//   `ExctractNonce`, `ExtractHash` is ignored.
+	ExtractAll func(c *gin.Context) (nonce string, nonceChecksum string, data string, hash string, err error)
+
 	// ExtractData extracts the data that the hash was generated against and
-	//   passes it to do proof of work calculation
+	//   passes it to do proof of work calculation.
+	//   Required when `ExtractAll` isn't defined.
 	ExtractData func(c *gin.Context) (string, error)
 
 	// ExtractNonce extracts the nonce that is in the request.
@@ -99,7 +106,7 @@ func New(m *Middleware) (*Middleware, error) {
 }
 
 func (pow *Middleware) middleWareInit() error {
-	if pow.ExtractData == nil {
+	if pow.ExtractData == nil && pow.ExtractAll == nil {
 		return errors.New("pow.ExtractData func not declared")
 	}
 
@@ -266,48 +273,59 @@ func (pow *Middleware) getNonce(c *gin.Context) (nonce string, nonceChecksum str
 // and, if `Middleware.Check == true`, nonce checksum. On failure, it will call
 // OnVerifiedFailed method. By default will Abort response with status code 428
 func (pow *Middleware) VerifyNonceMiddleware(c *gin.Context) {
-	nonce, nonceChecksum, err := pow.ExtractNonce(c)
-	if err != nil {
-		if !c.IsAborted() {
-			c.AbortWithError(500, err)
+	var (
+		nonce         string
+		nonceChecksum string
+		data          string
+		hash          string
+		err           error
+	)
+
+	if pow.ExtractAll != nil {
+		nonce, nonceChecksum, data, hash, err = pow.ExtractAll(c)
+	} else {
+		nonce, nonceChecksum, err = pow.ExtractNonce(c)
+		if err != nil {
+			if !c.IsAborted() {
+				c.AbortWithError(500, err)
+			}
+			return
 		}
-		return
-	}
 
-	if nonce == "" {
-		c.String(400, "no nonce in request")
-		c.Abort()
-		return
-	}
-
-	if pow.Check && nonceChecksum == "" {
-		c.String(400, "no nonce checksum in request")
-		c.Abort()
-		return
-	}
-
-	data, err := pow.ExtractData(c)
-	if err != nil {
-		if !c.IsAborted() {
-			c.AbortWithError(500, err)
+		if nonce == "" {
+			c.String(400, "no nonce in request")
+			c.Abort()
+			return
 		}
-		return
-	}
 
-	hash, err := pow.ExtractHash(c)
-	if err != nil {
-		if !c.IsAborted() {
-			c.AbortWithError(500, err)
+		if pow.Check && nonceChecksum == "" {
+			c.String(400, "no nonce checksum in request")
+			c.Abort()
+			return
 		}
-		return
-	}
 
-	if hash == "" {
-		c.String(400, "no hash in request")
-		c.Abort()
-		return
-	}
+		data, err = pow.ExtractData(c)
+		if err != nil {
+			if !c.IsAborted() {
+				c.AbortWithError(500, err)
+			}
+			return
+		}
 
+		hash, err = pow.ExtractHash(c)
+		if err != nil {
+			if !c.IsAborted() {
+				c.AbortWithError(500, err)
+			}
+			return
+		}
+
+		if hash == "" {
+			c.String(400, "no hash in request")
+			c.Abort()
+			return
+		}
+	}
 	ok, verificationErr := pow.Pow.VerifyHashAtDifficulty(nonce, data, hash, nonceChecksum)
 
 	if !ok {
