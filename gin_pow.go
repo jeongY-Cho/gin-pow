@@ -81,6 +81,13 @@ type Middleware struct {
 	// OnFailedVerification is called when a hash validation fails.
 	//   By default request Aborts and returns with `Middleware.FailureStatusCode`.
 	OnFailedVerification func(c *gin.Context, err *VerificationError)
+
+	// Hash function for proof of work.
+	//   Defaults to sha256
+	Hash gopow.HashFunction
+
+	// NonceGenerator returns a nonce.
+	NonceGenerator gopow.NonceGenerator
 }
 
 // New sets the config of a middleware. ExtractData definition is required.
@@ -94,6 +101,18 @@ func New(m *Middleware) (*Middleware, error) {
 func (pow *Middleware) middleWareInit() error {
 	if pow.ExtractData == nil {
 		return errors.New("pow.ExtractData func not declared")
+	}
+
+	if pow.NonceHeader == "" {
+		pow.NonceHeader = "X-Nonce"
+	}
+
+	if pow.NonceChecksumHeader == "" {
+		pow.NonceChecksumHeader = "X-Nonce-Checksum"
+	}
+
+	if pow.HashDifficultyHeader == "" {
+		pow.HashDifficultyHeader = "X-Hash-Difficulty"
 	}
 
 	if pow.ExtractNonce == nil {
@@ -123,23 +142,13 @@ func (pow *Middleware) middleWareInit() error {
 	}
 
 	pow.Pow = gopow.New(&gopow.Pow{
-		Secret:      pow.Secret,
-		Check:       pow.Check,
-		Difficulty:  pow.Difficulty,
-		NonceLength: pow.NonceLength,
+		Secret:         pow.Secret,
+		Check:          pow.Check,
+		Difficulty:     pow.Difficulty,
+		NonceLength:    pow.NonceLength,
+		Hash:           pow.Hash,
+		NonceGenerator: pow.NonceGenerator,
 	})
-
-	if pow.NonceHeader == "" {
-		pow.NonceHeader = "X-Nonce"
-	}
-
-	if pow.NonceChecksumHeader == "" {
-		pow.NonceChecksumHeader = "X-Nonce-Checksum"
-	}
-
-	if pow.HashDifficultyHeader == "" {
-		pow.HashDifficultyHeader = "X-Hash-Difficulty"
-	}
 
 	if pow.NonceContextKey == "" {
 		pow.NonceContextKey = "nonce"

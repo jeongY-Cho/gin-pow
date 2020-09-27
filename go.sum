@@ -44,6 +44,10 @@ github.com/google/go-cmp v0.5.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/jeongy-cho/go-pow v1.1.0 h1:arpgfL88ItaBZLmVbbW+KuYMw2MKrFtK53sorp4vSiY=
 github.com/jeongy-cho/go-pow v1.1.0/go.mod h1:LK4l4W/AvtVIgbOGGyc7t3NiGhsczT9AgEvhKQqXDRQ=
+github.com/jeongy-cho/go-pow v1.2.0 h1:E5QfVef5xV275LHt2C9aosUsJQvXORUHYQ3p8GLfK1s=
+github.com/jeongy-cho/go-pow v1.2.0/go.mod h1:LK4l4W/AvtVIgbOGGyc7t3NiGhsczT9AgEvhKQqXDRQ=
+github.com/jeongy-cho/go-pow v1.2.1 h1:z4vJ5M+pjN/tb7b+IeZ4QeXJ7AQDps1mKJmLIHvslpg=
+github.com/jeongy-cho/go-pow v1.2.1/go.mod h1:LK4l4W/AvtVIgbOGGyc7t3NiGhsczT9AgEvhKQqXDRQ=
 github.com/json-iterator/go v1.1.9 h1:9yzud/Ht36ygwatGx56VwCZtlI/2AD15T1X2sjSuGns=
 github.com/json-iterator/go v1.1.9/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/json-iterator/go v1.1.10 h1:Kz6Cvnvv2wGdaG/V8yMvfkmNiXq9Ya2KUv4rouJJr68=
@@ -96,6 +100,8 @@ golang.org/x/sys v0.0.0-20200116001909-b77594299b42 h1:vEOn+mP2zCOVzKckCZy6YsCtD
 golang.org/x/sys v0.0.0-20200116001909-b77594299b42/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d h1:L/IKR6COd7ubZrs2oTnTi73IhgqJ71c9s80WsQnh0Es=
 golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20200926100807-9d91bd62050c h1:38q6VNPWR010vN82/SB121GujZNIfAUb4YttE2rhGuc=
+golang.org/x/sys v0.0.0-20200926100807-9d91bd62050c/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.2/go.mod h1:bEr9sfX3Q8Zfm5fL9x+3itogRgK3+ptLWKqgva+5dAk=
 golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
