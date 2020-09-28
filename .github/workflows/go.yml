@@ -30,8 +30,8 @@ jobs:
             dep ensure
         fi
 
-    - name: Build
-      run: go build -v .
+    - name: Lint
+      uses: Jerome1337/golint-action@v1.0.2
 
     - name: Test
       run: go test -v -race -coverprofile=coverage.txt -covermode=atomic 
