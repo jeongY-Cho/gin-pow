@@ -933,4 +933,28 @@ func TestMiddleware_VerifyNonceMiddleware(t *testing.T) {
 		}
 
 	})
+
+	t.Run("error aborts with 500 when error without abort", func(t *testing.T) {
+		m, err := New(&Middleware{
+			ExtractAll: func(c *gin.Context) (nonce string, nonceChecksum string, data string, hash string, err error) {
+				err = errors.New("")
+				return
+			},
+		})
+		if err != nil {
+			t.Errorf("error initializing middleware: %v", err)
+			return
+		}
+
+		w := httptest.NewRecorder()
+
+		c, _ := gin.CreateTestContext(w)
+
+		m.VerifyNonceMiddleware(c)
+
+		if expect := http.StatusInternalServerError; w.Code != expect {
+			t.Errorf("didnt return expected code; Got: %v, Expected %v", w.Code, expect)
+		}
+	})
+
 }

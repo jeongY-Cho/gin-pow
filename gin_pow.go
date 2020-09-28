@@ -283,6 +283,12 @@ func (pow *Middleware) VerifyNonceMiddleware(c *gin.Context) {
 
 	if pow.ExtractAll != nil {
 		nonce, nonceChecksum, data, hash, err = pow.ExtractAll(c)
+		if err != nil {
+			if !c.IsAborted() {
+				c.AbortWithError(500, err)
+			}
+			return
+		}
 	} else {
 		nonce, nonceChecksum, err = pow.ExtractNonce(c)
 		if err != nil {
