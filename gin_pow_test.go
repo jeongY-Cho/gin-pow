@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	gopow "github.com/jeongy-cho/go-pow"
+	gopow "github.com/jeongy-cho/go-pow/v2"
 	gonanoid "github.com/matoous/go-nanoid"
 )
 
@@ -608,10 +608,10 @@ func TestMiddleware_getNonce(t *testing.T) {
 
 		n2, nc2, _ := m.getNonce(c)
 
-		if n1 != n2 {
+		if !reflect.DeepEqual(n1, n2) {
 			t.Errorf("got different nonces; Got: %v, Expected: %v", n1, n2)
 		}
-		if nc1 != nc2 {
+		if !reflect.DeepEqual(nc1, nc2) {
 			t.Errorf("got different nonce checksum; Got: %v, Expected: %v", nc1, nc2)
 		}
 
@@ -634,12 +634,12 @@ func TestMiddleware_getNonce(t *testing.T) {
 
 		n2, nc2, _ := m.getNonce(c)
 
-		if n1 != n2 {
+		if !reflect.DeepEqual(n1, n2) {
 			t.Errorf("got different nonces; Got: %v, Expected: %v", n1, n2)
 		}
 
-		if nc2 != "" {
-			t.Errorf("got a nonce checksum when shouldn't have: %v", nc2)
+		if !reflect.DeepEqual(nc2, "") {
+			t.Errorf("got a nonce checksum when shouldn't have: %#v", nc2)
 		}
 	})
 }
@@ -698,30 +698,6 @@ func TestMiddleware_VerifyNonceMiddleware(t *testing.T) {
 		}
 	})
 
-	t.Run("check, difficulty 1", func(t *testing.T) {
-		m, _ := New(&Middleware{
-			Difficulty: 1,
-			Check:      true,
-			Secret:     "secret",
-			ExtractAll: func(c *gin.Context) (nonce string, nonceChecksum string, data string, hash string, err error) {
-				nonce = "nonce"
-				nonceChecksum = "5c420d7fedeb75e1309b1fe82f9c85d5552f1edfc11c72e7749330881166f18d"
-				data = "data11111"
-				hash = "024b6380e07b20023e1b986b250b09bcfaa4551510ac4903a9b052e2b2cf9019"
-				return
-			},
-		})
-		w := httptest.NewRecorder()
-
-		c, _ := gin.CreateTestContext(w)
-
-		m.VerifyNonceMiddleware(c)
-
-		if len(c.Errors) > 0 {
-			t.Errorf("verification failed with error: %v", c.Errors)
-		}
-	})
-
 	t.Run("no check, difficulty 1", func(t *testing.T) {
 		m, _ := New(&Middleware{
 			Difficulty:  1,
@@ -734,7 +710,7 @@ func TestMiddleware_VerifyNonceMiddleware(t *testing.T) {
 			},
 			ExtractNonce: func(c *gin.Context) (nonce string, nonceChecksum string, error error) {
 				nonce = "nonce"
-				nonceChecksum = "not a checksum"
+				nonceChecksum = "0000"
 				return
 			},
 		})
@@ -755,12 +731,12 @@ func TestMiddleware_VerifyNonceMiddleware(t *testing.T) {
 			Secret:      "secret",
 			ExtractData: func(c *gin.Context) (string, error) { return "data11111", nil },
 			ExtractHash: func(c *gin.Context) (hash string, error error) {
-				hash = "not a valid hash"
+				hash = "0000000000"
 				return
 			},
 			ExtractNonce: func(c *gin.Context) (nonce string, nonceChecksum string, error error) {
 				nonce = "nonce"
-				nonceChecksum = "not a checksum"
+				nonceChecksum = "000000000000"
 				return
 			},
 		})
@@ -782,12 +758,12 @@ func TestMiddleware_VerifyNonceMiddleware(t *testing.T) {
 			Secret:      "secret",
 			ExtractData: func(c *gin.Context) (string, error) { return "data11111", nil },
 			ExtractHash: func(c *gin.Context) (hash string, error error) {
-				hash = "not a valid hash"
+				hash = "000000000000"
 				return
 			},
 			ExtractNonce: func(c *gin.Context) (nonce string, nonceChecksum string, error error) {
 				nonce = ""
-				nonceChecksum = "not a checksum"
+				nonceChecksum = "0000000000"
 				return
 			},
 		})
@@ -839,7 +815,7 @@ func TestMiddleware_VerifyNonceMiddleware(t *testing.T) {
 			},
 			ExtractNonce: func(c *gin.Context) (nonce string, nonceChecksum string, error error) {
 				nonce = "nonce"
-				nonceChecksum = "not a checksum"
+				nonceChecksum = "00000000"
 				return
 			},
 		})
@@ -892,7 +868,7 @@ func TestMiddleware_VerifyNonceMiddleware(t *testing.T) {
 			},
 			ExtractNonce: func(c *gin.Context) (nonce string, nonceChecksum string, error error) {
 				nonce = "nonce"
-				nonceChecksum = "not a checksum"
+				nonceChecksum = "0000000000"
 				return
 			},
 		})
@@ -918,7 +894,7 @@ func TestMiddleware_VerifyNonceMiddleware(t *testing.T) {
 			},
 			ExtractNonce: func(c *gin.Context) (nonce string, nonceChecksum string, error error) {
 				nonce = "nonce"
-				nonceChecksum = "not a checksum"
+				nonceChecksum = "000000"
 				return
 			},
 		})
@@ -954,6 +930,59 @@ func TestMiddleware_VerifyNonceMiddleware(t *testing.T) {
 
 		if expect := http.StatusInternalServerError; w.Code != expect {
 			t.Errorf("didnt return expected code; Got: %v, Expected %v", w.Code, expect)
+		}
+	})
+
+	t.Run("hash not hex", func(t *testing.T) {
+		m, _ := New(&Middleware{
+			Difficulty:  1,
+			Check:       true,
+			Secret:      "secret",
+			ExtractData: func(c *gin.Context) (string, error) { return "data11111", nil },
+			ExtractHash: func(c *gin.Context) (hash string, error error) {
+				hash = "024b6380e07b20023e1b986db250b09bcfaa4551510ac4903a9b052e2b2cf9019"
+				return
+			},
+			ExtractNonce: func(c *gin.Context) (nonce string, nonceChecksum string, error error) {
+				nonce = "nonce"
+				nonceChecksum = "5c420d7fedeb75e1309b1fe82f9c85d5552f1edfc11c72e7749330881166f18d"
+				return
+			},
+		})
+		w := httptest.NewRecorder()
+
+		c, _ := gin.CreateTestContext(w)
+
+		m.VerifyNonceMiddleware(c)
+
+		if expect := http.StatusBadRequest; w.Code != expect {
+			t.Errorf("didn't return expected status: Got: %v, Expected: %v", w.Code, expect)
+		}
+	})
+	t.Run("checksum not hex", func(t *testing.T) {
+		m, _ := New(&Middleware{
+			Difficulty:  1,
+			Check:       true,
+			Secret:      "secret",
+			ExtractData: func(c *gin.Context) (string, error) { return "data11111", nil },
+			ExtractHash: func(c *gin.Context) (hash string, error error) {
+				hash = "024b6380e07b20023e1b986b250b09bcfaa4551510ac4903a9b052e2b2cf9019"
+				return
+			},
+			ExtractNonce: func(c *gin.Context) (nonce string, nonceChecksum string, error error) {
+				nonce = "nonce"
+				nonceChecksum = "5c420d7fedeb75e1309bd1fe82f9c85d5552f1edfc11c72e7749330881166f18d"
+				return
+			},
+		})
+		w := httptest.NewRecorder()
+
+		c, _ := gin.CreateTestContext(w)
+
+		m.VerifyNonceMiddleware(c)
+
+		if expect := http.StatusBadRequest; w.Code != expect {
+			t.Errorf("didn't return expected status: Got: %v, Expected: %v", w.Code, expect)
 		}
 	})
 

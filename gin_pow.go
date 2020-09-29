@@ -1,11 +1,12 @@
 package ginpow
 
 import (
+	"encoding/hex"
 	"errors"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	gopow "github.com/jeongy-cho/go-pow"
+	gopow "github.com/jeongy-cho/go-pow/v2"
 	gonanoid "github.com/matoous/go-nanoid"
 )
 
@@ -149,7 +150,7 @@ func (pow *Middleware) middleWareInit() error {
 	}
 
 	pow.Pow = gopow.New(&gopow.Pow{
-		Secret:         pow.Secret,
+		Secret:         []byte(pow.Secret),
 		Check:          pow.Check,
 		Difficulty:     pow.Difficulty,
 		NonceLength:    pow.NonceLength,
@@ -238,22 +239,22 @@ func (pow *Middleware) NonceHeaderMiddleware(c *gin.Context) {
 // if other ginpow middleware is used after this middleware then it will
 // use the nonce generated here.
 func (pow *Middleware) GenerateNonceMiddleware(c *gin.Context) {
-	nonceArr, err := pow.Pow.GenerateNonce()
+	nonce, nonceChecksum, err := pow.Pow.GenerateNonce()
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	c.Set(pow.NonceContextKey, nonceArr[0])
+	c.Set(pow.NonceContextKey, string(nonce))
 	c.Set(pow.HashDifficultyContextKey, pow.Difficulty)
 
 	if pow.Check {
-		c.Set(pow.NonceChecksumContextKey, nonceArr[1])
+		c.Set(pow.NonceChecksumContextKey, hex.EncodeToString(nonceChecksum))
 	}
 }
 
 // gets a nonce in context or generates one
-func (pow *Middleware) getNonce(c *gin.Context) (nonce string, nonceChecksum string, error error) {
+func (pow *Middleware) getNonce(c *gin.Context) (string, string, error) {
 
 	n, nExists := c.Get(pow.NonceContextKey)
 	nc, _ := c.Get(pow.NonceChecksumContextKey)
@@ -265,8 +266,8 @@ func (pow *Middleware) getNonce(c *gin.Context) (nonce string, nonceChecksum str
 		return n.(string), "", nil
 	}
 
-	nonceArr, err := pow.Pow.GenerateNonce()
-	return nonceArr[0], nonceArr[1], err
+	nonce, nonceChecksum, err := pow.Pow.GenerateNonce()
+	return string(nonce), hex.EncodeToString(nonceChecksum), err
 }
 
 // VerifyNonceMiddleware validates a hash given a nonce, data string, difficulty,
@@ -332,8 +333,21 @@ func (pow *Middleware) VerifyNonceMiddleware(c *gin.Context) {
 			return
 		}
 	}
-	ok, verificationErr := pow.Pow.VerifyHashAtDifficulty(nonce, data, hash, nonceChecksum)
+	hashBytes, err := hex.DecodeString(hash)
+	if err != nil {
+		c.String(400, "received hash is not a valid hex string")
+		c.Abort()
+		return
+	}
 
+	nonceChecksumBytes, err := hex.DecodeString(nonceChecksum)
+	if err != nil {
+		c.String(400, "received checksum is not a valid hex string")
+		c.Abort()
+		return
+	}
+
+	ok, verificationErr := pow.Pow.VerifyHashAtDifficulty([]byte(nonce), []byte(data), hashBytes, nonceChecksumBytes)
 	if !ok {
 		err := &VerificationError{
 			Hash:          hash,
